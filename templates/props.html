@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NBA Player Props - {{ event.away_team }} @ {{ event.home_team }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Navigation -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">NBA Player Props</h1>
+            <a href="/" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Back to Game Lines</a>
+        </div>
+
+        <!-- Game Info -->
+        <div class="bg-gray-800 p-4 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold">{{ event.away_team }} @ {{ event.home_team }}</h2>
+            <p class="text-gray-400">{{ event.commence_time }}</p>
+        </div>
+
+        <!-- Props Sections -->
+        {% for prop_type, players in props_data.items() %}
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4 capitalize">Player {{ prop_type }}</h3>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-800">
+                    <thead class="bg-gray-800">
+                        <tr>
+                            <th class="py-3 px-4 text-left">Player</th>
+                            <th class="py-3 px-4 text-left">Line</th>
+                            {% for book in all_books %}
+                            <th class="py-3 px-4 text-center" colspan="2">{{ book }}</th>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            {% for book in all_books %}
+                            <th class="py-2 px-4 text-center text-sm text-gray-400">Over</th>
+                            <th class="py-2 px-4 text-center text-sm text-gray-400">Under</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-800">
+                        {% for player_name, data in players.items() %}
+                        <tr class="hover:bg-gray-800/50">
+                            <td class="py-3 px-4">{{ player_name }}</td>
+                            <td class="py-3 px-4">{{ data.line }}</td>
+                            {% for book in all_books %}
+                            {% if book in data.books %}
+                                <td class="py-3 px-4 text-center">
+                                    {{ data.books[book].over_price }}
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    {{ data.books[book].under_price }}
+                                </td>
+                            {% else %}
+                                <td class="py-3 px-4 text-center">-</td>
+                                <td class="py-3 px-4 text-center">-</td>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

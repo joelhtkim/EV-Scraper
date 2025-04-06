@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NBA Odds - Game Lines</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">NBA Odds Comparison</h1>
+
+        <table class="min-w-full divide-y divide-gray-800">
+            <thead class="bg-gray-800">
+                <tr>
+                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
+                        Game
+                    </th>
+                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
+                        Team
+                    </th>
+                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
+                        Best Line
+                    </th>
+                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
+                        Hold %
+                    </th>
+                    {% for book in all_books %}
+                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
+                        {{ book }}
+                    </th>
+                    {% endfor %}
+                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800">
+                {% for event in events %}
+                <!-- AWAY ROW -->
+                <tr class="hover:bg-gray-800/50">
+                    <td rowspan="2" class="py-3 px-4 align-top">
+                        <div>
+                            <div class="font-medium">{{ event.away_team }} @ {{ event.home_team }}</div>
+                            <div class="text-sm text-gray-400 mt-1">
+                                {{ event.commence_time }}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4">
+                        {{ event.away_team }}
+                    </td>
+                    <td class="py-3 px-4">
+                        {{ event.spread_data.away.best_line }}
+                    </td>
+                    <td class="py-3 px-4 align-top" rowspan="2">
+                        {{ event.spread_data.hold }}%
+                    </td>
+                    {% for book in all_books %}
+                    {% set line_text = event.spread_data.away.book_lines.get(book) or "" %}
+                    {% if line_text == event.spread_data.away.best_line %}
+                    <td class="py-3 px-4 font-bold bg-green-600 text-white">
+                        {{ line_text }}
+                    </td>
+                    {% else %}
+                    <td class="py-3 px-4">
+                        {{ line_text }}
+                    </td>
+                    {% endif %}
+                    {% endfor %}
+                    <td rowspan="2" class="py-3 px-4 align-middle">
+                        <a href="/props/{{ event.event_id }}" 
+                           class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">
+                            View Props
+                        </a>
+                    </td>
+                </tr>
+                <!-- HOME ROW -->
+                <tr class="hover:bg-gray-800/50">
+                    <td class="py-3 px-4">
+                        {{ event.home_team }}
+                    </td>
+                    <td class="py-3 px-4">
+                        {{ event.spread_data.home.best_line }}
+                    </td>
+                    {% for book in all_books %}
+                    {% set line_text = event.spread_data.home.book_lines.get(book) or "" %}
+                    {% if line_text == event.spread_data.home.best_line %}
+                    <td class="py-3 px-4 font-bold bg-green-600 text-white">
+                        {{ line_text }}
+                    </td>
+                    {% else %}
+                    <td class="py-3 px-4">
+                        {{ line_text }}
+                    </td>
+                    {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
