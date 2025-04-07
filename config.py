@@ -1,8 +1,12 @@
 import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Try to load environment variables using dotenv if in local development
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # In Vercel environment, dotenv is not needed as environment variables are provided
+    pass
 
 # Configuration class to store app settings
 class Config:

@@ -1,9 +1,14 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import requests
+import os
+import sys
+from urllib.parse import parse_qs
+
+# Add project root to path so we can import config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import Config
 
-app = Flask(__name__)
-app.config.from_object(Config)
+app = Flask(__name__, template_folder='../templates')
 
 def american_to_decimal(american_odds):
     """Convert American odds to decimal."""
@@ -35,12 +40,12 @@ def remove_vig(decimal_odds_list):
 
 def get_standard_odds_data():
     """Fetch standard (main) markets for all NBA events."""
-    url = f"https://api.the-odds-api.com/v4/sports/{app.config['SPORT']}/odds"
+    url = f"https://api.the-odds-api.com/v4/sports/{Config.SPORT}/odds"
     params = {
-        "apiKey": app.config['API_KEY'],
-        "regions": app.config['REGIONS'],
-        "markets": app.config['MARKETS_MAIN'],
-        "oddsFormat": app.config['ODDS_FORMAT'],
+        "apiKey": Config.API_KEY,
+        "regions": Config.REGIONS,
+        "markets": Config.MARKETS_MAIN,
+        "oddsFormat": Config.ODDS_FORMAT,
     }
     response = requests.get(url, params=params)
     response.raise_for_status()
@@ -48,12 +53,12 @@ def get_standard_odds_data():
 
 def get_props_odds_data(event_id):
     """Fetch player props for one event."""
-    url = f"https://api.the-odds-api.com/v4/sports/{app.config['SPORT']}/events/{event_id}/odds"
+    url = f"https://api.the-odds-api.com/v4/sports/{Config.SPORT}/events/{event_id}/odds"
     params = {
-        "apiKey": app.config['API_KEY'],
-        "regions": app.config['REGIONS'],
-        "markets": app.config['MARKETS_PROPS'],
-        "oddsFormat": app.config['ODDS_FORMAT'],
+        "apiKey": Config.API_KEY,
+        "regions": Config.REGIONS,
+        "markets": Config.MARKETS_PROPS,
+        "oddsFormat": Config.ODDS_FORMAT,
     }
     response = requests.get(url, params=params)
     response.raise_for_status()
@@ -245,7 +250,7 @@ def process_events():
     
     return all_processed
 
-@app.route("/")
+@app.route('/', methods=['GET'])
 def index():
     events_data = process_events()
     all_books = set()
@@ -259,7 +264,7 @@ def index():
                          all_books=all_books,
                          active_tab="main")
 
-@app.route("/props/<event_id>")
+@app.route('/props/<event_id>', methods=['GET'])
 def props(event_id):
     # Get basic event info
     events_data = process_events()
@@ -284,5 +289,11 @@ def props(event_id):
                          all_books=props_books,
                          active_tab="props")
 
+# This is necessary for Vercel serverless functions
+def handler(event, context):
+    """Serverless function handler for Vercel."""
+    return app(event, context)
+
+# This is used when running the app locally
 if __name__ == "__main__":
-    app.run(debug=app.config['DEBUG'])
+    app.run(debug=Config.DEBUG)
