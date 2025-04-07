@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, Request
 import requests
 import os
+from urllib.parse import parse_qs
 
-# Use compatible Flask version specified in requirements.txt
+# Initialize Flask application
 app = Flask(__name__, template_folder='../templates')
 
 # Configuration directly in the file for simplicity
@@ -28,18 +29,6 @@ def decimal_to_american(decimal_odds):
         return int(-100 / (decimal_odds - 1))
     else:
         return int((decimal_odds - 1) * 100)
-
-def remove_vig(decimal_odds_list):
-    """Return fair decimal odds list with the vig removed."""
-    implied_probs = [1/o for o in decimal_odds_list if o > 0]
-    total_implied = sum(implied_probs)
-    if total_implied <= 0:
-        return decimal_odds_list
-    fair_odds = []
-    for p in implied_probs:
-        fair_prob = p / total_implied
-        fair_odds.append(1 / fair_prob)
-    return fair_odds
 
 def get_standard_odds_data():
     """Fetch standard (main) markets for all NBA events."""
@@ -70,8 +59,7 @@ def get_props_odds_data(event_id):
 def build_spread_data(away_team, home_team, bookmakers):
     """
     For the "spreads" market only, gather each bookmaker's line for 
-    (away_team) and (home_team). Then compute "best line," "no-vig" lines, 
-    "hold," etc. 
+    (away_team) and (home_team).
     """
     away_lines = {}
     home_lines = {}
@@ -292,10 +280,11 @@ def props(event_id):
                          all_books=props_books,
                          active_tab="props")
 
-# Special handler for Vercel
-def handler(event, context):
-    return app(event, context)
-
-# Local development server
+# This is for local development
 if __name__ == "__main__":
     app.run(debug=True)
+
+# This is the handler that Vercel uses
+def handler(request):
+    """Handle Vercel function requests."""
+    return app(request)
