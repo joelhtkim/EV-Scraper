@@ -1,14 +1,17 @@
 from flask import Flask, render_template, request
 import requests
 import os
-import sys
-from urllib.parse import parse_qs
 
-# Add project root to path so we can import config
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import Config
-
+# Use compatible Flask version specified in requirements.txt
 app = Flask(__name__, template_folder='../templates')
+
+# Configuration directly in the file for simplicity
+API_KEY = os.environ.get('ODDS_API_KEY')
+SPORT = "basketball_nba"
+REGIONS = "us"
+MARKETS_MAIN = "h2h,spreads,totals"
+MARKETS_PROPS = "player_points,player_assists,player_rebounds"
+ODDS_FORMAT = "american"
 
 def american_to_decimal(american_odds):
     """Convert American odds to decimal."""
@@ -40,12 +43,12 @@ def remove_vig(decimal_odds_list):
 
 def get_standard_odds_data():
     """Fetch standard (main) markets for all NBA events."""
-    url = f"https://api.the-odds-api.com/v4/sports/{Config.SPORT}/odds"
+    url = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds"
     params = {
-        "apiKey": Config.API_KEY,
-        "regions": Config.REGIONS,
-        "markets": Config.MARKETS_MAIN,
-        "oddsFormat": Config.ODDS_FORMAT,
+        "apiKey": API_KEY,
+        "regions": REGIONS,
+        "markets": MARKETS_MAIN,
+        "oddsFormat": ODDS_FORMAT,
     }
     response = requests.get(url, params=params)
     response.raise_for_status()
@@ -53,12 +56,12 @@ def get_standard_odds_data():
 
 def get_props_odds_data(event_id):
     """Fetch player props for one event."""
-    url = f"https://api.the-odds-api.com/v4/sports/{Config.SPORT}/events/{event_id}/odds"
+    url = f"https://api.the-odds-api.com/v4/sports/{SPORT}/events/{event_id}/odds"
     params = {
-        "apiKey": Config.API_KEY,
-        "regions": Config.REGIONS,
-        "markets": Config.MARKETS_PROPS,
-        "oddsFormat": Config.ODDS_FORMAT,
+        "apiKey": API_KEY,
+        "regions": REGIONS,
+        "markets": MARKETS_PROPS,
+        "oddsFormat": ODDS_FORMAT,
     }
     response = requests.get(url, params=params)
     response.raise_for_status()
@@ -289,11 +292,10 @@ def props(event_id):
                          all_books=props_books,
                          active_tab="props")
 
-# This is necessary for Vercel serverless functions
+# Special handler for Vercel
 def handler(event, context):
-    """Serverless function handler for Vercel."""
     return app(event, context)
 
-# This is used when running the app locally
+# Local development server
 if __name__ == "__main__":
-    app.run(debug=Config.DEBUG)
+    app.run(debug=True)
