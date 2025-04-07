@@ -2,72 +2,219 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NBA Player Props - {{ event.away_team }} @ {{ event.home_team }}</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <style>
+        .tab-active {
+            border-color: #3B82F6;
+            color: white;
+        }
+        .odds-positive { color: #10B981; }
+        .odds-negative { color: #EF4444; }
+        .prop-heading {
+            position: relative;
+        }
+        .prop-heading::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background-color: #3B82F6;
+            border-radius: 1.5px;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Navigation -->
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">NBA Player Props</h1>
-            <a href="/" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Back to Game Lines</a>
+    <nav class="bg-gray-800 shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-basketball-ball text-orange-500 mr-2 text-xl"></i>
+                    <h1 class="text-xl font-bold">NBA Odds Hub</h1>
+                </div>
+                <a href="/" class="flex items-center text-gray-300 hover:text-white transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Back to Game Lines
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-6">
+        <!-- Game Info Card -->
+        <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">{{ event.away_team }} @ {{ event.home_team }}</h2>
+                    <p class="text-gray-400">
+                        <i class="far fa-clock mr-1"></i>
+                        {{ event.commence_time }}
+                    </p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <div class="inline-flex flex-wrap gap-2">
+                        <a href="/" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center">
+                            <i class="fas fa-table-columns mr-2"></i> Game Lines
+                        </a>
+                        <span class="bg-blue-600 px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                            <i class="fas fa-chart-bar mr-2"></i> Player Props
+                        </span>
+                        <a href="/props/{{ event.event_id }}" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center">
+                            <i class="fas fa-sync-alt mr-2"></i> Refresh
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Game Info -->
-        <div class="bg-gray-800 p-4 rounded-lg mb-6">
-            <h2 class="text-xl font-semibold">{{ event.away_team }} @ {{ event.home_team }}</h2>
-            <p class="text-gray-400">{{ event.commence_time }}</p>
+        <!-- Prop Type Tabs -->
+        <div class="mb-6">
+            <div class="flex border-b border-gray-700">
+                <button id="tab-points" class="px-4 py-2 font-medium border-b-2 tab-active" onclick="switchTab('points')">
+                    <i class="fas fa-basketball mr-1"></i> Points
+                </button>
+                <button id="tab-assists" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-400" onclick="switchTab('assists')">
+                    <i class="fas fa-hands-helping mr-1"></i> Assists
+                </button>
+                <button id="tab-rebounds" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-400" onclick="switchTab('rebounds')">
+                    <i class="fas fa-chart-pie mr-1"></i> Rebounds
+                </button>
+            </div>
         </div>
 
         <!-- Props Sections -->
         {% for prop_type, players in props_data.items() %}
-        <div class="mb-8">
-            <h3 class="text-xl font-semibold mb-4 capitalize">Player {{ prop_type }}</h3>
-            
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-800">
-                    <thead class="bg-gray-800">
-                        <tr>
-                            <th class="py-3 px-4 text-left">Player</th>
-                            <th class="py-3 px-4 text-left">Line</th>
-                            {% for book in all_books %}
-                            <th class="py-3 px-4 text-center" colspan="2">{{ book }}</th>
+        <div id="section-{{ prop_type }}" class="mb-8 fade-in prop-section {% if prop_type != 'points' %}hidden{% endif %}">
+            {% if players %}
+            <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-700">
+                        <thead>
+                            <tr class="bg-gray-700 text-xs uppercase">
+                                <th class="px-4 py-3 text-left font-semibold tracking-wider">Player</th>
+                                <th class="px-4 py-3 text-center font-semibold tracking-wider">Line</th>
+                                {% for book in all_books %}
+                                <th class="px-6 py-3 text-center font-semibold tracking-wider" colspan="2">{{ book }}</th>
+                                {% endfor %}
+                            </tr>
+                            <tr class="bg-gray-750">
+                                <th class="px-4 py-2"></th>
+                                <th class="px-4 py-2"></th>
+                                {% for book in all_books %}
+                                <th class="px-3 py-2 text-center text-xs text-gray-400">Over</th>
+                                <th class="px-3 py-2 text-center text-xs text-gray-400">Under</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="bg-gray-800 divide-y divide-gray-700">
+                            {% for player_name, data in players.items() %}
+                            <tr class="hover:bg-gray-750 transition-colors">
+                                <td class="px-4 py-3 font-medium">{{ player_name }}</td>
+                                <td class="px-4 py-3 text-center font-bold">{{ data.line }}</td>
+                                {% for book in all_books %}
+                                {% if book in data.books %}
+                                    {% set over_price = data.books[book].over_price %}
+                                    {% set under_price = data.books[book].under_price %}
+                                    <td class="px-3 py-3 text-center {% if over_price > 0 %}odds-positive{% else %}odds-negative{% endif %}">
+                                        {{ over_price }}
+                                    </td>
+                                    <td class="px-3 py-3 text-center {% if under_price > 0 %}odds-positive{% else %}odds-negative{% endif %}">
+                                        {{ under_price }}
+                                    </td>
+                                {% else %}
+                                    <td class="px-3 py-3 text-center text-gray-600">-</td>
+                                    <td class="px-3 py-3 text-center text-gray-600">-</td>
+                                {% endif %}
+                                {% endfor %}
+                            </tr>
                             {% endfor %}
-                        </tr>
-                        <tr>
-                            <th></th>
-                            <th></th>
-                            {% for book in all_books %}
-                            <th class="py-2 px-4 text-center text-sm text-gray-400">Over</th>
-                            <th class="py-2 px-4 text-center text-sm text-gray-400">Under</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-800">
-                        {% for player_name, data in players.items() %}
-                        <tr class="hover:bg-gray-800/50">
-                            <td class="py-3 px-4">{{ player_name }}</td>
-                            <td class="py-3 px-4">{{ data.line }}</td>
-                            {% for book in all_books %}
-                            {% if book in data.books %}
-                                <td class="py-3 px-4 text-center">
-                                    {{ data.books[book].over_price }}
-                                </td>
-                                <td class="py-3 px-4 text-center">
-                                    {{ data.books[book].under_price }}
-                                </td>
-                            {% else %}
-                                <td class="py-3 px-4 text-center">-</td>
-                                <td class="py-3 px-4 text-center">-</td>
-                            {% endif %}
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+            {% else %}
+            <div class="bg-gray-800 p-8 rounded-lg text-center shadow-lg">
+                <div class="inline-block p-4 rounded-full bg-gray-700 mb-4">
+                    <i class="fas fa-info-circle text-blue-400 text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">No {{ prop_type }} props available</h3>
+                <p class="text-gray-400">Props for this category are not yet available or have not been published by bookmakers.</p>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
+        
+        {% if not props_data.points and not props_data.assists and not props_data.rebounds %}
+        <div class="bg-gray-800 p-8 rounded-lg text-center shadow-lg">
+            <div class="inline-block p-6 rounded-full bg-gray-700 mb-6">
+                <i class="fas fa-clock text-yellow-400 text-4xl"></i>
+            </div>
+            <h3 class="text-2xl font-semibold mb-3">No player props available yet</h3>
+            <p class="text-gray-400 max-w-lg mx-auto">
+                Player props are typically posted closer to game time. Please check back later as bookmakers release their lines.
+            </p>
+            <div class="mt-6">
+                <a href="/" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i> Return to Game Lines
+                </a>
+            </div>
+        </div>
+        {% endif %}
     </div>
+
+    <footer class="bg-gray-800 py-6 mt-10">
+        <div class="container mx-auto px-4">
+            <div class="text-center text-gray-400 text-sm">
+                <p>Data provided by The Odds API. Bet responsibly.</p>
+                <p class="mt-2">© 2025 NBA Odds Hub</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide all sections
+            document.querySelectorAll('.prop-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Show the selected section
+            const selectedSection = document.getElementById(`section-${tabName}`);
+            if (selectedSection) {
+                selectedSection.classList.remove('hidden');
+            }
+            
+            // Update tab styling
+            document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+                tab.classList.remove('tab-active');
+                tab.classList.add('text-gray-400');
+                tab.classList.add('border-transparent');
+            });
+            
+            const activeTab = document.getElementById(`tab-${tabName}`);
+            if (activeTab) {
+                activeTab.classList.add('tab-active');
+                activeTab.classList.remove('text-gray-400');
+                activeTab.classList.remove('border-transparent');
+            }
+        }
+        
+        // Initialize with points tab active
+        document.addEventListener('DOMContentLoaded', function() {
+            switchTab('points');
+        });
+    </script>
 </body>
 </html>

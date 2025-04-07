@@ -2,102 +2,172 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NBA Odds - Game Lines</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Odds Comparison</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <style>
+        .odds-positive { color: #10B981; }
+        .odds-negative { color: #EF4444; }
+        .best-line { 
+            position: relative;
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 3px solid #10B981;
+        }
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold mb-6">NBA Odds Comparison</h1>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <nav class="bg-gray-800 shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-basketball-ball text-orange-500 mr-2 text-xl"></i>
+                    <h1 class="text-xl font-bold">NBA Odds Hub</h1>
+                </div>
+                <div class="text-sm text-gray-400">
+                    <span id="current-time"></span>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-        <table class="min-w-full divide-y divide-gray-800">
-            <thead class="bg-gray-800">
-                <tr>
-                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
-                        Game
-                    </th>
-                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
-                        Team
-                    </th>
-                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
-                        Best Line
-                    </th>
-                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
-                        Hold %
-                    </th>
-                    {% for book in all_books %}
-                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
-                        {{ book }}
-                    </th>
-                    {% endfor %}
-                    <th scope="col" class="py-3 px-4 text-left font-semibold text-gray-100 uppercase tracking-wider">
-                        Actions
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-800">
-                {% for event in events %}
-                <!-- AWAY ROW -->
-                <tr class="hover:bg-gray-800/50">
-                    <td rowspan="2" class="py-3 px-4 align-top">
-                        <div>
-                            <div class="font-medium">{{ event.away_team }} @ {{ event.home_team }}</div>
-                            <div class="text-sm text-gray-400 mt-1">
-                                {{ event.commence_time }}
-                            </div>
-                        </div>
-                    </td>
-                    <td class="py-3 px-4">
-                        {{ event.away_team }}
-                    </td>
-                    <td class="py-3 px-4">
-                        {{ event.spread_data.away.best_line }}
-                    </td>
-                    <td class="py-3 px-4 align-top" rowspan="2">
-                        {{ event.spread_data.hold }}%
-                    </td>
-                    {% for book in all_books %}
-                    {% set line_text = event.spread_data.away.book_lines.get(book) or "" %}
-                    {% if line_text == event.spread_data.away.best_line %}
-                    <td class="py-3 px-4 font-bold bg-green-600 text-white">
-                        {{ line_text }}
-                    </td>
-                    {% else %}
-                    <td class="py-3 px-4">
-                        {{ line_text }}
-                    </td>
-                    {% endif %}
-                    {% endfor %}
-                    <td rowspan="2" class="py-3 px-4 align-middle">
-                        <a href="/props/{{ event.event_id }}" 
-                           class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">
-                            View Props
-                        </a>
-                    </td>
-                </tr>
-                <!-- HOME ROW -->
-                <tr class="hover:bg-gray-800/50">
-                    <td class="py-3 px-4">
-                        {{ event.home_team }}
-                    </td>
-                    <td class="py-3 px-4">
-                        {{ event.spread_data.home.best_line }}
-                    </td>
-                    {% for book in all_books %}
-                    {% set line_text = event.spread_data.home.book_lines.get(book) or "" %}
-                    {% if line_text == event.spread_data.home.best_line %}
-                    <td class="py-3 px-4 font-bold bg-green-600 text-white">
-                        {{ line_text }}
-                    </td>
-                    {% else %}
-                    <td class="py-3 px-4">
-                        {{ line_text }}
-                    </td>
-                    {% endif %}
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="container mx-auto px-4 py-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Game Lines <span class="text-gray-500 text-base font-normal ml-2">Spreads</span></h2>
+            <div class="flex gap-2">
+                <a href="/" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-md text-sm flex items-center transition-colors">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Refresh Odds
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg overflow-hidden shadow-xl mb-10">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead>
+                        <tr class="bg-gray-700 text-xs uppercase">
+                            <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider border-b border-gray-600 w-1/4">Game</th>
+                            <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider border-b border-gray-600">Team</th>
+                            <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider border-b border-gray-600">Best Line</th>
+                            <th scope="col" class="px-4 py-3 text-center font-semibold tracking-wider border-b border-gray-600">Hold %</th>
+                            {% for book in all_books %}
+                            <th scope="col" class="px-4 py-3 text-center font-semibold tracking-wider border-b border-gray-600">
+                                {{ book }}
+                            </th>
+                            {% endfor %}
+                            <th scope="col" class="px-4 py-3 text-center font-semibold tracking-wider border-b border-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700 bg-gray-800">
+                        {% for event in events %}
+                        <!-- AWAY ROW -->
+                        <tr class="transition-colors hover:bg-gray-750">
+                            <td rowspan="2" class="px-4 py-3 align-top">
+                                <div class="flex flex-col">
+                                    <div class="font-medium mb-1">{{ event.away_team }} @ {{ event.home_team }}</div>
+                                    <div class="text-sm text-gray-400">
+                                        {{ event.commence_time }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 font-medium">
+                                <div class="flex items-center">
+                                    <span class="text-blue-400 mr-2 text-xs">AWAY</span>
+                                    {{ event.away_team }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-medium {% if event.spread_data.away.best_line %}best-line px-3 py-1 rounded{% endif %}">
+                                    {{ event.spread_data.away.best_line }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 align-middle text-center" rowspan="2">
+                                <div class="font-bold text-lg 
+                                    {% if event.spread_data.hold > 10 %}text-red-500
+                                    {% elif event.spread_data.hold > 5 %}text-yellow-500
+                                    {% else %}text-green-500{% endif %}">
+                                    {{ event.spread_data.hold }}%
+                                </div>
+                            </td>
+                            {% for book in all_books %}
+                            {% set line_text = event.spread_data.away.book_lines.get(book) or "" %}
+                            {% if line_text == event.spread_data.away.best_line and line_text != "" %}
+                            <td class="px-4 py-3 font-bold text-center bg-green-900/30">
+                                {{ line_text }}
+                            </td>
+                            {% else %}
+                            <td class="px-4 py-3 text-center {% if not line_text %}text-gray-600{% endif %}">
+                                {{ line_text or "-" }}
+                            </td>
+                            {% endif %}
+                            {% endfor %}
+                            <td rowspan="2" class="px-4 py-3 align-middle text-center">
+                                <a href="/props/{{ event.event_id }}" 
+                                class="inline-flex items-center bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                    <i class="fas fa-chart-bar mr-2"></i> Player Props
+                                </a>
+                            </td>
+                        </tr>
+                        <!-- HOME ROW -->
+                        <tr class="transition-colors hover:bg-gray-750 border-b border-gray-700">
+                            <td class="px-4 py-3 font-medium">
+                                <div class="flex items-center">
+                                    <span class="text-green-400 mr-2 text-xs">HOME</span>
+                                    {{ event.home_team }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-medium {% if event.spread_data.home.best_line %}best-line px-3 py-1 rounded{% endif %}">
+                                    {{ event.spread_data.home.best_line }}
+                                </div>
+                            </td>
+                            {% for book in all_books %}
+                            {% set line_text = event.spread_data.home.book_lines.get(book) or "" %}
+                            {% if line_text == event.spread_data.home.best_line and line_text != "" %}
+                            <td class="px-4 py-3 font-bold text-center bg-green-900/30">
+                                {{ line_text }}
+                            </td>
+                            {% else %}
+                            <td class="px-4 py-3 text-center {% if not line_text %}text-gray-600{% endif %}">
+                                {{ line_text or "-" }}
+                            </td>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+
+    <footer class="bg-gray-800 py-6 mt-10">
+        <div class="container mx-auto px-4">
+            <div class="text-center text-gray-400 text-sm">
+                <p>Data provided by The Odds API. Bet responsibly.</p>
+                <p class="mt-2">© 2025 NBA Odds Hub</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString();
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
 </body>
 </html>

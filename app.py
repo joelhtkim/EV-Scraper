@@ -1,14 +1,9 @@
 from flask import Flask, render_template
 import requests
+from config import Config
 
 app = Flask(__name__)
-
-API_KEY = "c1a7b2688cc6dd94400a827566d2262e"
-SPORT = "basketball_nba"
-REGIONS = "us"
-MARKETS_MAIN = "h2h,spreads,totals"
-MARKETS_PROPS = "player_points,player_assists,player_rebounds"
-ODDS_FORMAT = "american"
+app.config.from_object(Config)
 
 def american_to_decimal(american_odds):
     """Convert American odds to decimal."""
@@ -40,25 +35,25 @@ def remove_vig(decimal_odds_list):
 
 def get_standard_odds_data():
     """Fetch standard (main) markets for all NBA events."""
-    url = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds"
+    url = f"https://api.the-odds-api.com/v4/sports/{app.config['SPORT']}/odds"
     params = {
-        "apiKey": API_KEY,
-        "regions": REGIONS,
-        "markets": MARKETS_MAIN,
-        "oddsFormat": ODDS_FORMAT,
+        "apiKey": app.config['API_KEY'],
+        "regions": app.config['REGIONS'],
+        "markets": app.config['MARKETS_MAIN'],
+        "oddsFormat": app.config['ODDS_FORMAT'],
     }
     response = requests.get(url, params=params)
     response.raise_for_status()
     return response.json()
 
 def get_props_odds_data(event_id):
-    """Fetch player props for one event (optional)."""
-    url = f"https://api.the-odds-api.com/v4/events/{event_id}/odds"
+    """Fetch player props for one event."""
+    url = f"https://api.the-odds-api.com/v4/sports/{app.config['SPORT']}/events/{event_id}/odds"
     params = {
-        "apiKey": API_KEY,
-        "regions": REGIONS,
-        "markets": MARKETS_PROPS,
-        "oddsFormat": ODDS_FORMAT,
+        "apiKey": app.config['API_KEY'],
+        "regions": app.config['REGIONS'],
+        "markets": app.config['MARKETS_PROPS'],
+        "oddsFormat": app.config['ODDS_FORMAT'],
     }
     response = requests.get(url, params=params)
     response.raise_for_status()
@@ -163,18 +158,20 @@ def format_line(spread_point, american_price):
 def get_props_data_formatted(event_id):
     """Fetch and format player props for an event."""
     try:
+        # Get the event odds for player props
         props_data = get_props_odds_data(event_id)
-        if not props_data:
-            return {}
-            
+        
+        # Initialize formatted props structure
         formatted_props = {
             'points': {},
             'assists': {},
             'rebounds': {}
         }
         
-        event = props_data[0]  # Props endpoint returns list with single event
-        for bookmaker in event.get('bookmakers', []):
+        # Process bookmakers from the props data
+        bookmakers = props_data.get('bookmakers', [])
+        
+        for bookmaker in bookmakers:
             book_name = bookmaker.get('title')
             
             for market in bookmaker.get('markets', []):
@@ -216,9 +213,13 @@ def get_props_data_formatted(event_id):
                             'over_price': over_outcome.get('price'),
                             'under_price': under_outcome.get('price') if under_outcome else None
                         }
-                    
+        
         return formatted_props
-    except requests.HTTPError:
+    except requests.HTTPError as e:
+        print(f"HTTP Error fetching props: {str(e)}")
+        return {}
+    except Exception as e:
+        print(f"Error processing props: {str(e)}")
         return {}
 
 def process_events():
@@ -266,17 +267,9 @@ def props(event_id):
     
     if not event:
         return "Event not found", 404
-        
-    # Debug: Print raw props data
-    try:
-        raw_props = get_props_odds_data(event_id)
-        print("Raw Props API Response:", raw_props)  # This will print to your terminal
-    except Exception as e:
-        print(f"Error fetching props: {str(e)}")
-        
+    
     # Get props data
     props_data = get_props_data_formatted(event_id)
-    print("Formatted Props Data:", props_data)  # This will print to your terminal
     
     # Get all books that have props
     props_books = set()
@@ -292,4 +285,4 @@ def props(event_id):
                          active_tab="props")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=app.config['DEBUG'])
