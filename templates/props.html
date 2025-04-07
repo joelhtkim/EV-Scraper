@@ -12,8 +12,6 @@
             border-color: #3B82F6;
             color: white;
         }
-        .odds-positive { color: #10B981; }
-        .odds-negative { color: #EF4444; }
         .prop-heading {
             position: relative;
         }
@@ -33,6 +31,10 @@
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
+        }
+        .best-odds {
+            background-color: rgba(16, 185, 129, 0.2); /* Light green background */
+            font-weight: bold;
         }
     </style>
 </head>
@@ -127,11 +129,11 @@
                                 {% if book in data.books %}
                                     {% set over_price = data.books[book].over_price %}
                                     {% set under_price = data.books[book].under_price %}
-                                    <td class="px-3 py-3 text-center {% if over_price > 0 %}odds-positive{% else %}odds-negative{% endif %}">
-                                        {{ over_price }}
+                                    <td class="px-3 py-3 text-center" data-over="{{ over_price }}">
+                                        {{ over_price|default('-') if over_price is none else ('+' + over_price|string if over_price > 0 else over_price|string) }}
                                     </td>
-                                    <td class="px-3 py-3 text-center {% if under_price > 0 %}odds-positive{% else %}odds-negative{% endif %}">
-                                        {{ under_price }}
+                                    <td class="px-3 py-3 text-center" data-under="{{ under_price }}">
+                                        {{ under_price|default('-') if under_price is none else ('+' + under_price|string if under_price > 0 else under_price|string) }}
                                     </td>
                                 {% else %}
                                     <td class="px-3 py-3 text-center text-gray-600">-</td>
@@ -211,9 +213,56 @@
             }
         }
         
-        // Initialize with points tab active
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize with points tab active
             switchTab('points');
+            
+            // Find and highlight the best odds
+            document.querySelectorAll('.prop-section').forEach(function(section) {
+                // For each player row
+                section.querySelectorAll('tbody tr').forEach(function(row) {
+                    // Find the best over odds (highest value)
+                    let bestOverValue = -Infinity;
+                    let bestOverElements = [];
+                    // Find the best under odds (highest value)
+                    let bestUnderValue = -Infinity;
+                    let bestUnderElements = [];
+                    
+                    // Check each bookmaker's odds
+                    row.querySelectorAll('td[data-over]').forEach(function(cell) {
+                        const val = parseFloat(cell.getAttribute('data-over'));
+                        if (!isNaN(val)) {
+                            if (val > bestOverValue) {
+                                bestOverValue = val;
+                                bestOverElements = [cell];
+                            } else if (val === bestOverValue) {
+                                bestOverElements.push(cell);
+                            }
+                        }
+                    });
+                    
+                    row.querySelectorAll('td[data-under]').forEach(function(cell) {
+                        const val = parseFloat(cell.getAttribute('data-under'));
+                        if (!isNaN(val)) {
+                            if (val > bestUnderValue) {
+                                bestUnderValue = val;
+                                bestUnderElements = [cell];
+                            } else if (val === bestUnderValue) {
+                                bestUnderElements.push(cell);
+                            }
+                        }
+                    });
+                    
+                    // Highlight the best odds
+                    bestOverElements.forEach(function(cell) {
+                        cell.classList.add('best-odds');
+                    });
+                    
+                    bestUnderElements.forEach(function(cell) {
+                        cell.classList.add('best-odds');
+                    });
+                });
+            });
         });
     </script>
 </body>
