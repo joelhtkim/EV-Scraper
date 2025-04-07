@@ -1,9 +1,7 @@
-from flask import Flask, render_template, Request
-import requests
+from flask import Flask, render_template
 import os
-from urllib.parse import parse_qs
+import requests
 
-# Initialize Flask application
 app = Flask(__name__, template_folder='../templates')
 
 # Configuration directly in the file for simplicity
@@ -280,11 +278,9 @@ def props(event_id):
                          all_books=props_books,
                          active_tab="props")
 
-# This is for local development
+# For local development
 if __name__ == "__main__":
     app.run(debug=True)
 
-# This is the handler that Vercel uses
-def handler(request):
-    """Handle Vercel function requests."""
-    return app(request)
+# The magic happens here - let the Vercel handler use our Flask app
+app.debug = True
