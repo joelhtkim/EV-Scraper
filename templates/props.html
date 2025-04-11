@@ -98,65 +98,65 @@
 
         <!-- Props Sections -->
         {% for prop_type, players in props_data.items() %}
-        <div id="section-{{ prop_type }}" class="mb-8 fade-in prop-section {% if prop_type != 'points' %}hidden{% endif %}">
-            {% if players %}
-            <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-700">
-                        <thead>
-                            <tr class="bg-gray-700 text-xs uppercase">
-                                <th class="px-4 py-3 text-left font-semibold tracking-wider">Player</th>
-                                <th class="px-4 py-3 text-center font-semibold tracking-wider">Line</th>
-                                {% for book in all_books %}
-                                <th class="px-6 py-3 text-center font-semibold tracking-wider" colspan="2">{{ book }}</th>
-                                {% endfor %}
-                            </tr>
-                            <tr class="bg-gray-750">
-                                <th class="px-4 py-2"></th>
-                                <th class="px-4 py-2"></th>
-                                {% for book in all_books %}
-                                <th class="px-3 py-2 text-center text-xs text-gray-400">Over</th>
-                                <th class="px-3 py-2 text-center text-xs text-gray-400">Under</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody class="bg-gray-800 divide-y divide-gray-700">
-                            {% for player_name, data in players.items() %}
-                            <tr class="hover:bg-gray-750 transition-colors">
-                                <td class="px-4 py-3 font-medium">{{ player_name }}</td>
-                                <td class="px-4 py-3 text-center font-bold">{{ data.line }}</td>
-                                {% for book in all_books %}
-                                {% if book in data.books %}
-                                    {% set over_price = data.books[book].over_price %}
-                                    {% set under_price = data.books[book].under_price %}
-                                    <td class="px-3 py-3 text-center" data-over="{{ over_price }}">
-                                        {{ over_price|default('-') if over_price is none else ('+' + over_price|string if over_price > 0 else over_price|string) }}
-                                    </td>
-                                    <td class="px-3 py-3 text-center" data-under="{{ under_price }}">
-                                        {{ under_price|default('-') if under_price is none else ('+' + under_price|string if under_price > 0 else under_price|string) }}
-                                    </td>
-                                {% else %}
-                                    <td class="px-3 py-3 text-center text-gray-600">-</td>
-                                    <td class="px-3 py-3 text-center text-gray-600">-</td>
-                                {% endif %}
-                                {% endfor %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% else %}
-            <div class="bg-gray-800 p-8 rounded-lg text-center shadow-lg">
-                <div class="inline-block p-4 rounded-full bg-gray-700 mb-4">
-                    <i class="fas fa-info-circle text-blue-400 text-3xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-2">No {{ prop_type }} props available</h3>
-                <p class="text-gray-400">Props for this category are not yet available or have not been published by bookmakers.</p>
-            </div>
-            {% endif %}
+<div id="section-{{ prop_type }}" class="mb-8 fade-in prop-section {% if prop_type != 'points' %}hidden{% endif %}">
+    {% if players %}
+    <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-700">
+                <thead>
+                    <tr class="bg-gray-700 text-xs uppercase">
+                        <th class="px-4 py-3 text-left font-semibold tracking-wider">Player</th>
+                        <th class="px-4 py-3 text-center font-semibold tracking-wider">Line</th>
+                        {% for book in all_books %}
+                        <th class="px-6 py-3 text-center font-semibold tracking-wider" colspan="2">{{ book }}</th>
+                        {% endfor %}
+                    </tr>
+                    <tr class="bg-gray-750">
+                        <th class="px-4 py-2"></th>
+                        <th class="px-4 py-2"></th>
+                        {% for book in all_books %}
+                        <th class="px-3 py-2 text-center text-xs text-gray-400">Over</th>
+                        <th class="px-3 py-2 text-center text-xs text-gray-400">Under</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="bg-gray-800 divide-y divide-gray-700">
+                    {% for prop_key, data in players.items() %}
+                    <tr class="hover:bg-gray-750 transition-colors">
+                        <td class="px-4 py-3 font-medium">{{ data.player }}</td>
+                        <td class="px-4 py-3 text-center font-bold">{{ data.line }}</td>
+                        {% for book in all_books %}
+                        {% if book in data.books %}
+                            {% set over_price = data.books[book].over_price %}
+                            {% set under_price = data.books[book].under_price %}
+                            <td class="px-3 py-3 text-center" data-over="{{ over_price }}">
+                                {{ over_price|default('-') if over_price is none else ('+' + over_price|string if over_price > 0 else over_price|string) }}
+                            </td>
+                            <td class="px-3 py-3 text-center" data-under="{{ under_price }}">
+                                {{ under_price|default('-') if under_price is none else ('+' + under_price|string if under_price > 0 else under_price|string) }}
+                            </td>
+                        {% else %}
+                            <td class="px-3 py-3 text-center text-gray-600">-</td>
+                            <td class="px-3 py-3 text-center text-gray-600">-</td>
+                        {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-gray-800 p-8 rounded-lg text-center shadow-lg">
+        <div class="inline-block p-4 rounded-full bg-gray-700 mb-4">
+            <i class="fas fa-info-circle text-blue-400 text-3xl"></i>
+        </div>
+        <h3 class="text-xl font-semibold mb-2">No {{ prop_type }} props available</h3>
+        <p class="text-gray-400">Props for this category are not yet available or have not been published by bookmakers.</p>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
         
         {% if not props_data.points and not props_data.assists and not props_data.rebounds %}
         <div class="bg-gray-800 p-8 rounded-lg text-center shadow-lg">

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Positive EV Bets</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <style>
+        .odds-positive { color: #10B981; }
+        .odds-negative { color: #EF4444; }
+        .best-line { 
+            position: relative;
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 3px solid #10B981;
+        }
+        .ev-tier-high {
+            color: #10B981;
+            font-weight: bold;
+        }
+        .ev-tier-medium {
+            color: #FBBF24;
+            font-weight: bold;
+        }
+        .ev-tier-low {
+            color: #F87171;
+            font-weight: bold;
+        }
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+        .detail-card {
+            display: none;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        .detail-card.active {
+            display: block;
+            max-height: 1000px;
+            opacity: 1;
+        }
+        .best-odds {
+            background-color: rgba(16, 185, 129, 0.2);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <nav class="bg-gray-800 shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-basketball-ball text-orange-500 mr-2 text-xl"></i>
+                    <h1 class="text-xl font-bold">NBA Odds Hub</h1>
+                </div>
+                <div class="text-sm text-gray-400">
+                    <span id="current-time"></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-6">
+        <div class="flex justify-between flex-wrap items-center mb-6">
+            <h2 class="text-2xl font-bold mb-2 sm:mb-0">Positive EV <span class="text-green-400 text-base font-normal ml-2">Betting Opportunities</span></h2>
+            <div class="flex flex-wrap gap-2">
+                <div class="bg-gray-800 px-4 py-2 rounded-md text-sm flex items-center">
+                    <i class="fas fa-filter mr-2 text-blue-300"></i>
+                    <select id="market-filter" class="bg-gray-800 text-white border-none outline-none" onchange="applyFilters()">
+                        <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All Markets</option>
+                        <option value="spreads" {% if current_filter == 'spreads' %}selected{% endif %}>Game Spreads</option>
+                        <option value="player_props" {% if current_filter == 'player_props' %}selected{% endif %}>All Player Props</option>
+                        <option value="points" {% if current_filter == 'points' %}selected{% endif %}>Player Points</option>
+                        <option value="assists" {% if current_filter == 'assists' %}selected{% endif %}>Player Assists</option>
+                        <option value="rebounds" {% if current_filter == 'rebounds' %}selected{% endif %}>Player Rebounds</option>
+                    </select>
+                </div>
+                <div class="bg-gray-800 px-4 py-2 rounded-md text-sm flex items-center">
+                    <i class="fas fa-percentage mr-2 text-green-300"></i>
+                    <span class="mr-2">Min EV:</span>
+                    <input type="number" id="min-ev" class="bg-gray-700 text-white border-none outline-none w-16 px-2 py-1 rounded" 
+                           value="{{ min_ev }}" step="0.5" min="0" max="20" onchange="applyFilters()">
+                </div>
+                <a href="/" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Game Lines
+                </a>
+                <a href="/ev" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-md text-sm flex items-center transition-colors">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Refresh Odds
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg overflow-hidden shadow-xl mb-6">
+            <div class="p-4 border-b border-gray-700 bg-gray-750">
+                <div class="flex items-center text-sm text-gray-400">
+                    <i class="fas fa-info-circle mr-2 text-blue-400"></i>
+                    <span>Positive Expected Value (EV) bets are identified by comparing odds across different sportsbooks. The percentage shown is the estimated edge you have over the market.</span>
+                </div>
+            </div>
+        </div>
+
+        {% if opportunities %}
+        <div class="bg-gray-800 rounded-lg overflow-hidden shadow-xl mb-10">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead>
+                        <tr class="bg-gray-700 text-xs uppercase">
+                            <th scope="col" class="px-4 py-3 text-center font-semibold tracking-wider border-b border-gray-600">EV%</th>
+                            <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider border-b border-gray-600">Game</th>
+                            <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider border-b border-gray-600">Market</th>
+                            <th scope="col" class="px-4 py-3 text-left font-semibold tracking-wider border-b border-gray-600">Pick</th>
+                            <th scope="col" class="px-4 py-3 text-center font-semibold tracking-wider border-b border-gray-600">Best Odds</th>
+                            <th scope="col" class="px-4 py-3 text-center font-semibold tracking-wider border-b border-gray-600">Book</th>
+                            <th scope="col" class="px-4 py-3 text-center font-semibold tracking-wider border-b border-gray-600"># Books</th>
+                            <th scope="col" class="px-4 py-3 text-center font-semibold tracking-wider border-b border-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700 bg-gray-800">
+                        {% for opportunity in opportunities %}
+                        <tr class="transition-colors hover:bg-gray-750" data-opportunity-id="{{ loop.index }}">
+                            <td class="px-4 py-4 align-middle text-center">
+                                <div class="text-lg font-bold 
+                                    {% if opportunity.ev_percentage > 5 %}ev-tier-high
+                                    {% elif opportunity.ev_percentage > 2 %}ev-tier-medium
+                                    {% else %}ev-tier-low{% endif %}">
+                                    {{ opportunity.ev_percentage }}%
+                                </div>
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex flex-col">
+                                    <div class="font-medium mb-1">{{ opportunity.away_team }} @ {{ opportunity.home_team }}</div>
+                                    <div class="text-sm text-gray-400">
+                                        {{ opportunity.commence_time }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 font-medium">
+                                {{ opportunity.market_type }}
+                            </td>
+                            <td class="px-4 py-4 font-medium">
+                                {{ opportunity.team }} {{ opportunity.line }}
+                            </td>
+                            <td class="px-4 py-4 text-center font-bold {% if opportunity.best_odds > 0 %}odds-positive{% else %}odds-negative{% endif %}">
+                                {{ opportunity.best_odds|default('-') if opportunity.best_odds is none else ('+' + opportunity.best_odds|string if opportunity.best_odds > 0 else opportunity.best_odds|string) }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <div class="flex items-center justify-center">
+                                    <span class="bg-blue-900/20 px-3 py-1 rounded text-blue-300">{{ opportunity.best_book }}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {{ opportunity.markets }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <button onclick="toggleDetails('{{ loop.index }}')" 
+                                        class="inline-flex items-center bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium transition-colors mr-2">
+                                    <i class="fas fa-chart-bar mr-2"></i> Odds Compare
+                                </button>
+                                <a href="/props/{{ opportunity.event_id }}" 
+                                class="inline-flex items-center bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                                    <i class="fas fa-external-link-alt mr-2"></i> Details
+                                </a>
+                            </td>
+                        </tr>
+                        
+                        <!-- Expanded Detail Row -->
+                        <tr class="detail-card" id="details-{{ loop.index }}">
+                            <td colspan="8" class="px-0 py-0 bg-gray-850">
+                                <div class="p-6 bg-gray-850 border-t border-b border-gray-700">
+                                    <div class="mb-4">
+                                        <h3 class="text-xl font-bold mb-2">{{ opportunity.team }} {{ opportunity.line }} Odds Comparison</h3>
+                                        <div class="text-sm text-gray-400">{{ opportunity.away_team }} @ {{ opportunity.home_team }} | {{ opportunity.commence_time }}</div>
+                                    </div>
+                                    
+                                    <!-- Bookmaker Odds Comparison -->
+                                    <div class="bg-gray-800 rounded-lg overflow-hidden shadow-md mb-4">
+                                        <div class="overflow-x-auto">
+                                            <table class="min-w-full divide-y divide-gray-700">
+                                                <thead>
+                                                    <tr class="bg-gray-700 text-xs text-left uppercase">
+                                                        <th class="px-4 py-3 font-semibold tracking-wider border-b border-gray-600 w-48">Sportsbook</th>
+                                                        <th class="px-4 py-3 font-semibold tracking-wider border-b border-gray-600 text-center">Line</th>
+                                                        <th class="px-4 py-3 font-semibold tracking-wider border-b border-gray-600 text-center">Odds</th>
+                                                        <th class="px-4 py-3 font-semibold tracking-wider border-b border-gray-600 text-center">Implied Prob</th>
+                                                        <th class="px-4 py-3 font-semibold tracking-wider border-b border-gray-600 text-center">Fair Odds</th>
+                                                        <th class="px-4 py-3 font-semibold tracking-wider border-b border-gray-600 text-center">EV%</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-700">
+                                                    {% for book, odds in opportunity.all_odds.items() %}
+                                                    <tr class="transition-colors hover:bg-gray-750 {% if odds == opportunity.best_odds %}best-odds{% endif %}">
+                                                        <td class="px-4 py-3 font-medium">
+                                                            <div class="flex items-center">
+                                                                {% if book == opportunity.best_book %}<i class="fas fa-star text-yellow-400 mr-2"></i>{% endif %}
+                                                                {{ book }}
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center">{{ opportunity.line }}</td>
+                                                        <td class="px-4 py-3 text-center font-semibold {% if odds > 0 %}odds-positive{% else %}odds-negative{% endif %}">
+                                                            {{ odds|default('-') if odds is none else ('+' + odds|string if odds > 0 else odds|string) }}
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center">
+                                                            {{ "%.1f"|format(opportunity.implied_probabilities[book] * 100) }}%
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center">
+                                                            {{ opportunity.fair_odds.get(book)|default('-') }}
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center font-semibold
+                                                            {% if opportunity.individual_ev[book] > 5 %}ev-tier-high
+                                                            {% elif opportunity.individual_ev[book] > 2 %}ev-tier-medium
+                                                            {% elif opportunity.individual_ev[book] > 0 %}ev-tier-low
+                                                            {% else %}text-gray-500{% endif %}">
+                                                            {{ "%.2f"|format(opportunity.individual_ev[book]) }}%
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+
+                                                    <!-- Market Average -->
+                                                    <tr class="bg-blue-900/20 font-semibold">
+                                                        <td class="px-4 py-3">Market Average</td>
+                                                        <td class="px-4 py-3 text-center">{{ opportunity.line }}</td>
+                                                        <td class="px-4 py-3 text-center">
+                                                            {{ opportunity.avg_american_odds|default('-') }}
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center">
+                                                            {{ "%.1f"|format(opportunity.avg_implied_probability * 100) }}%
+                                                        </td>
+                                                        <td class="px-4 py-3 text-center">-</td>
+                                                        <td class="px-4 py-3 text-center">-</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Chart/Visualization -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-gray-800 rounded-lg p-4 shadow-md">
+                                            <h4 class="text-sm uppercase font-bold text-gray-400 mb-2">Key Metrics</h4>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div class="bg-gray-750 rounded-lg p-3">
+                                                    <div class="text-sm text-gray-400">Best Odds</div>
+                                                    <div class="text-xl font-bold {% if opportunity.best_odds > 0 %}odds-positive{% else %}odds-negative{% endif %}">
+                                                        {{ opportunity.best_odds|default('-') if opportunity.best_odds is none else ('+' + opportunity.best_odds|string if opportunity.best_odds > 0 else opportunity.best_odds|string) }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500">@ {{ opportunity.best_book }}</div>
+                                                </div>
+                                                <div class="bg-gray-750 rounded-lg p-3">
+                                                    <div class="text-sm text-gray-400">Market Implied</div>
+                                                    <div class="text-xl font-bold">{{ "%.1f"|format(opportunity.avg_implied_probability * 100) }}%</div>
+                                                    <div class="text-xs text-gray-500">Across {{ opportunity.markets }} books</div>
+                                                </div>
+                                                <div class="bg-gray-750 rounded-lg p-3">
+                                                    <div class="text-sm text-gray-400">EV Percentage</div>
+                                                    <div class="text-xl font-bold 
+                                                        {% if opportunity.ev_percentage > 5 %}ev-tier-high
+                                                        {% elif opportunity.ev_percentage > 2 %}ev-tier-medium
+                                                        {% else %}ev-tier-low{% endif %}">
+                                                        {{ "%.2f"|format(opportunity.ev_percentage) }}%
+                                                    </div>
+                                                    <div class="text-xs text-gray-500">Expected value</div>
+                                                </div>
+                                                <div class="bg-gray-750 rounded-lg p-3">
+                                                    <div class="text-sm text-gray-400">Variance</div>
+                                                    <div class="text-xl font-bold">
+                                                        {{ "%.2f"|format(opportunity.odds_variance) }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500">Standard deviation</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="bg-gray-800 rounded-lg p-4 shadow-md">
+                                            <h4 class="text-sm uppercase font-bold text-gray-400 mb-2">Recommended Action</h4>
+                                            <div class="flex flex-col h-full justify-between">
+                                                <div>
+                                                    {% if opportunity.ev_percentage > 5 %}
+                                                    <div class="bg-green-900/20 border-l-4 border-green-500 p-3 rounded">
+                                                        <div class="flex items-center mb-2">
+                                                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                                            <span class="font-bold text-green-400">Strong Value Bet</span>
+                                                        </div>
+                                                        <p class="text-sm text-gray-300">This bet offers exceptional value with {{ "%.2f"|format(opportunity.ev_percentage) }}% EV, significantly higher than the market average.</p>
+                                                    </div>
+                                                    {% elif opportunity.ev_percentage > 2 %}
+                                                    <div class="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded">
+                                                        <div class="flex items-center mb-2">
+                                                            <i class="fas fa-thumbs-up text-yellow-500 mr-2"></i>
+                                                            <span class="font-bold text-yellow-400">Value Bet</span>
+                                                        </div>
+                                                        <p class="text-sm text-gray-300">This bet offers good value with {{ "%.2f"|format(opportunity.ev_percentage) }}% EV, better than the market average.</p>
+                                                    </div>
+                                                    {% else %}
+                                                    <div class="bg-gray-750 border-l-4 border-gray-500 p-3 rounded">
+                                                        <div class="flex items-center mb-2">
+                                                            <i class="fas fa-info-circle text-gray-500 mr-2"></i>
+                                                            <span class="font-bold text-gray-400">Small Edge</span>
+                                                        </div>
+                                                        <p class="text-sm text-gray-300">This bet offers a slight edge with {{ "%.2f"|format(opportunity.ev_percentage) }}% EV, just above market average.</p>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <div class="mt-4 text-sm text-gray-400">
+                                                    <p>{{ opportunity.team }} {{ opportunity.line }} (<span class="{% if opportunity.best_odds > 0 %}odds-positive{% else %}odds-negative{% endif %}">{{ opportunity.best_odds|default('-') if opportunity.best_odds is none else ('+' + opportunity.best_odds|string if opportunity.best_odds > 0 else opportunity.best_odds|string) }}</span>) at {{ opportunity.best_book }} offers the best value in this market.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-gray-800 p-8 rounded-lg text-center shadow-lg">
+            <div class="inline-block p-6 rounded-full bg-gray-700 mb-6">
+                <i class="fas fa-search text-blue-400 text-4xl"></i>
+            </div>
+            <h3 class="text-2xl font-semibold mb-3">No Positive EV Opportunities Found</h3>
+            <p class="text-gray-400 max-w-lg mx-auto">
+                We couldn't find any positive expected value opportunities with the current odds.
+                Check back later as odds may change, or try lowering the EV threshold.
+            </p>
+            <div class="mt-6">
+                <a href="/" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i> Return to Game Lines
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer class="bg-gray-800 py-6 mt-10">
+        <div class="container mx-auto px-4">
+            <div class="text-center text-gray-400 text-sm">
+                <p>Data provided by The Odds API. Bet responsibly.</p>
+                <p class="mt-2">© 2025 NBA Odds Hub</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString();
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // Toggle details section
+        function toggleDetails(id) {
+            const detailsSection = document.getElementById(`details-${id}`);
+            
+            // Close any open detail cards first
+            document.querySelectorAll('.detail-card.active').forEach(card => {
+                if (card.id !== `details-${id}`) {
+                    card.classList.remove('active');
+                }
+            });
+            
+            // Toggle the selected card
+            detailsSection.classList.toggle('active');
+        }
+
+    
+    </script>
+
+    <script>
+        function applyFilters() {
+            const marketFilter = document.getElementById('market-filter').value;
+            const minEV = document.getElementById('min-ev').value;
+            
+            window.location.href = `/ev?market=${marketFilter}&min_ev=${minEV}`;
+        }
+    </script>
+</body>
+</html>
